@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { sipCore, CALLSTATE, AUDIO_DEVICE_KIND } from "./sip-core";
 import { AudioVisualizer } from "./audio-visualizer";
+import { localize } from "./localize";
 
 interface Extension {
     name: string;
@@ -531,22 +532,23 @@ class SIPCallDialog extends LitElement {
     }
 
     render() {
+        this.hass = sipCore.hass || this.hass;
+        this.config = (sipCore.config?.popup_config || this.config) as PopupConfig;
+
         const outputOptions = [
-            { value: DEFAULT_AUDIO_DEVICE_ID, label: "Default Output" },
+            { value: DEFAULT_AUDIO_DEVICE_ID, label: localize(this.hass, "default_output") },
             ...this.outputDevices.map((device) => ({
                 value: device.deviceId,
-                label: device.label || "Audio output",
+                label: device.label || localize(this.hass, "audio_output_fallback"),
             })),
         ];
         const inputOptions = [
-            { value: DEFAULT_AUDIO_DEVICE_ID, label: "Default Input" },
+            { value: DEFAULT_AUDIO_DEVICE_ID, label: localize(this.hass, "default_input") },
             ...this.inputDevices.map((device) => ({
                 value: device.deviceId,
-                label: device.label || "Audio input",
+                label: device.label || localize(this.hass, "audio_input_fallback"),
             })),
         ];
-        this.hass = sipCore.hass || this.hass;
-        this.config = (sipCore.config?.popup_config || this.config) as PopupConfig;
 
         let camera: string = "";
         let statusText;
@@ -555,27 +557,27 @@ class SIPCallDialog extends LitElement {
 
         switch (sipCore.callState) {
             case CALLSTATE.IDLE:
-                statusText = "No active call";
+                statusText = localize(this.hass, "no_active_call");
                 phoneIcon = "mdi:phone";
                 break;
             case CALLSTATE.INCOMING:
-                statusText = "Incoming call from " + remoteName;
+                statusText = localize(this.hass, "incoming_call_from", { name: remoteName });
                 phoneIcon = "mdi:phone-incoming";
                 break;
             case CALLSTATE.OUTGOING:
-                statusText = "Outgoing call to " + remoteName;
+                statusText = localize(this.hass, "outgoing_call_to", { name: remoteName });
                 phoneIcon = "mdi:phone-outgoing";
                 break;
             case CALLSTATE.CONNECTED:
-                statusText = "Connected to " + remoteName;
+                statusText = localize(this.hass, "connected_to", { name: remoteName });
                 phoneIcon = "mdi:phone-in-talk";
                 break;
             case CALLSTATE.CONNECTING:
-                statusText = "Connecting to " + remoteName;
+                statusText = localize(this.hass, "connecting_to", { name: remoteName });
                 phoneIcon = "mdi:phone";
                 break;
             default:
-                statusText = "Unknown call state";
+                statusText = localize(this.hass, "unknown_call_state");
                 phoneIcon = "mdi:phone";
                 break;
         }
@@ -606,18 +608,18 @@ class SIPCallDialog extends LitElement {
                     <ha-dialog-header slot="header">
                         <ha-icon-button
                             slot="navigationIcon"
-                            label="Back"
+                            label="${localize(this.hass, "back")}"
                             data-dialog="close">
                             <ha-icon .icon=${"mdi:arrow-left"}></ha-icon>
                         </ha-icon-button>
-                        <span slot="title" .title="Call">SIP Call Settings</span>
+                        <span slot="title" .title="${localize(this.hass, "call")}">${localize(this.hass, "sip_call_settings")}</span>
                     </ha-dialog-header>
                     <div tabindex="-1" dialogInitialFocus class="form">
                         <ha-select
                             naturalMenuWidth
                             fixedMenuPosition
                             icon
-                            label=${"Audio Output"}
+                            label=${localize(this.hass, "audio_output")}
                             .value=${sipCore.AudioOutputId ?? DEFAULT_AUDIO_DEVICE_ID}
                             .options=${outputOptions}
                             @selected=${this.handleAudioOutputChange}
@@ -627,27 +629,27 @@ class SIPCallDialog extends LitElement {
                             naturalMenuWidth
                             fixedMenuPosition
                             icon
-                            label=${"Audio Input"}
+                            label=${localize(this.hass, "audio_input")}
                             .value=${sipCore.AudioInputId ?? DEFAULT_AUDIO_DEVICE_ID}
                             .options=${inputOptions}
                             @selected=${this.handleAudioInputChange}
                             @closed="${(event: { stopPropagation: () => any }) => event.stopPropagation()}">
                         </ha-select>
                         <ha-settings-row>
-                            <span slot="heading">Logged in as ${sipCore.user.ha_username} <span style="color: gray;">(${sipCore.user.extension})</span></span>
-                            <span slot="description">The current user used to log in to the SIP server. You can configure users in the SIP Core options</span>
+                            <span slot="heading">${localize(this.hass, "logged_in_as", { username: sipCore.user.ha_username })} <span style="color: gray;">(${sipCore.user.extension})</span></span>
+                            <span slot="description">${localize(this.hass, "logged_in_as_description")}</span>
                         </ha-settings-row>
                         <ha-settings-row>
-                            <span slot="heading">Is ${sipCore.registered ? "registered" : "not registered"} <span style="color: gray;">(${sipCore.registered ? "true" : "false"})</span></span>
-                            <span slot="description">The current registration status of the SIP client. If not registered, check browser console and Asterisk logs for more information</span>
+                            <span slot="heading">${localize(this.hass, "is_status", { status: sipCore.registered ? localize(this.hass, "registered") : localize(this.hass, "not_registered") })} <span style="color: gray;">(${sipCore.registered ? "true" : "false"})</span></span>
+                            <span slot="description">${localize(this.hass, "registration_status_description")}</span>
                         </ha-settings-row>
                         <ha-settings-row>
-                            <span slot="heading">Call state is ${sipCore.callState}</span>
-                            <span slot="description">The current call state of the SIP client</span>
+                            <span slot="heading">${localize(this.hass, "call_state_is", { state: sipCore.callState })}</span>
+                            <span slot="description">${localize(this.hass, "call_state_description")}</span>
                         </ha-settings-row>
                         <ha-settings-row>
                             <span slot="heading">SIP-Core <span style="color: gray;">v${sipCore.version}</span></span>
-                            <span slot="description">The main SIP call system, created by Jordy Kuhne</span>
+                            <span slot="description">${localize(this.hass, "sip_core_description")}</span>
                         </ha-settings-row>
                     </div>
                 </ha-dialog>
@@ -660,7 +662,7 @@ class SIPCallDialog extends LitElement {
                     <ha-icon-button
                         data-dialog="close"
                         slot="navigationIcon"
-                        label="Close">
+                        label="${localize(this.hass, "close")}">
                         <ha-icon .icon=${"mdi:close"}></ha-icon>
                     </ha-icon-button>
                     <div slot="title" class="row">
@@ -670,7 +672,7 @@ class SIPCallDialog extends LitElement {
                     <ha-icon-button
                         dialogAction="settings"
                         slot="actionItems"
-                        label="Settings"
+                        label="${localize(this.hass, "settings")}"
                         @click="${async () => {
                             this.configuratorOpen = false;
                             await this.updateComplete;
@@ -688,7 +690,7 @@ class SIPCallDialog extends LitElement {
                     >
                         <ha-icon-button
                             slot="trigger"
-                            label="More">
+                            label="${localize(this.hass, "more")}">
                             <ha-icon .icon=${"mdi:dots-vertical"}></ha-icon>
                         </ha-icon-button>
                         <ha-dropdown-item
@@ -696,7 +698,7 @@ class SIPCallDialog extends LitElement {
                                 window.open("https://tech7fox.github.io/sip-hass-docs", "_blank");
                             }}">
                             <ha-icon slot="icon" .icon=${"mdi:bookshelf"}></ha-icon>
-                            Documentation
+                            ${localize(this.hass, "documentation")}
                         </ha-dropdown-item>
                         <ha-dropdown-item
                             @click="${() => {
@@ -721,7 +723,7 @@ class SIPCallDialog extends LitElement {
                             sipCore.callState === CALLSTATE.IDLE
                                 ? html`
                                       <div>
-                                          <span>No active call</span>
+                                          <span>${localize(this.hass, "no_active_call")}</span>
                                       </div>
                                   `
                                 : camera
@@ -732,7 +734,7 @@ class SIPCallDialog extends LitElement {
                     <div class="bottom-row">
                         <ha-icon-button
                             class="accept-button"
-                            label="Answer call"
+                            label="${localize(this.hass, "answer_call")}"
                             @click="${() => sipCore.answerCall()}">
                             <ha-icon .icon=${phoneIcon}></ha-icon>
                         </ha-icon-button>
@@ -769,7 +771,7 @@ class SIPCallDialog extends LitElement {
                         <div>
                             <ha-icon-button
                                 class="audio-button"
-                                label="Mute audio"
+                                label="${localize(this.hass, "mute_audio")}"
                                 ?disabled="${sipCore.RTCSession === null}"
                                 @click="${() => {
                                     if (sipCore.RTCSession?.isMuted().audio)
@@ -787,7 +789,7 @@ class SIPCallDialog extends LitElement {
                             </ha-icon-button>
                             <ha-icon-button
                                 class="audio-button"
-                                label="Mute video"
+                                label="${localize(this.hass, "mute_video")}"
                                 style="display: ${sipCore.config.sip_video ? "block" : "none"}"
                                 ?disabled="${sipCore.RTCSession === null}"
                                 @click="${() => {
@@ -807,7 +809,7 @@ class SIPCallDialog extends LitElement {
                         </div>
                         <ha-icon-button
                             class="deny-button"
-                            label="End call"
+                            label="${localize(this.hass, "end_call")}"
                             @click="${() => {
                                 sipCore.endCall();
                                 this.closePopup();
@@ -865,7 +867,7 @@ class SIPCallDialog extends LitElement {
         }
 
         const callButton = document.createElement("ha-icon-button") as any;
-        callButton.label = "Open Call Popup";
+        callButton.label = localize(sipCore.hass, "open_call_popup");
         const icon = document.createElement("ha-icon") as any;
         icon.style = "display: flex; align-items: center; justify-content: center;";
         (icon as any).icon = "mdi:phone";
