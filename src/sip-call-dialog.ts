@@ -39,6 +39,10 @@ interface PopupConfig {
 
 const DEFAULT_AUDIO_DEVICE_ID = "__default__";
 
+// Id of the <style> tag injected into the go2rtc player frame to hide its
+// overlay (status/mode label, e.g. "RTC") and native video controls.
+const GO2RTC_DECLUTTER_STYLE_ID = "sipcore-go2rtc-declutter-style";
+
 @customElement("sip-call-dialog")
 class SIPCallDialog extends LitElement {
     @property()
@@ -464,6 +468,35 @@ class SIPCallDialog extends LitElement {
         }
     }
 
+    /**
+     * Strips go2rtc's own UI chrome (the "RTC"/"MSE"/... status overlay and the
+     * native <video> controls) from the embedded player, so only the raw video
+     * shows in the popup. This only works for same-origin frames (go2rtc_ingress);
+     * cross-origin frames are left untouched since the browser blocks DOM access.
+     */
+    private declutterGo2RTCFrame(event: Event) {
+        const iframe = event.target as HTMLIFrameElement;
+        let doc: Document | null;
+        try {
+            doc = iframe.contentDocument;
+        } catch (err) {
+            // Cross-origin frame (no go2rtc_ingress): browser blocks DOM access, nothing we can do.
+            return;
+        }
+        if (!doc) return;
+
+        if (!doc.getElementById(GO2RTC_DECLUTTER_STYLE_ID)) {
+            const style = doc.createElement("style");
+            style.id = GO2RTC_DECLUTTER_STYLE_ID;
+            style.textContent = "video-stream .info { display: none !important; }";
+            doc.head?.appendChild(style);
+        }
+
+        doc.querySelectorAll("video").forEach((video) => {
+            (video as HTMLVideoElement).controls = false;
+        });
+    }
+
     renderCameraStream(camera: string) {
         this.hass = sipCore.hass || this.hass;
 
@@ -495,6 +528,7 @@ class SIPCallDialog extends LitElement {
                         class="sip-camera-frame"
                         src=${this.go2rtcIngressFrameUrl}
                         allow="autoplay; fullscreen; microphone; camera"
+                        @load=${this.declutterGo2RTCFrame}
                     ></iframe>
                 `;
             }
@@ -516,6 +550,7 @@ class SIPCallDialog extends LitElement {
                     class="sip-camera-frame"
                     src=${go2rtcFrameUrl}
                     allow="autoplay; fullscreen; microphone; camera"
+                    @load=${this.declutterGo2RTCFrame}
                 ></iframe>
             `;
         }
