@@ -15,6 +15,10 @@ interface Extension {
     go2rtc_ingress?: boolean | null;
     go2rtc_addon_slug?: string | null;
     live_provider?: string | null;
+    /** Show go2rtc's player controls and status label (e.g. "RTC"). Default: true. Needs a same-origin player (go2rtc_ingress). */
+    go2rtc_controls?: boolean | null;
+    /** Mute the go2rtc player, as call audio already comes via SIP. Default: false. Needs a same-origin player (go2rtc_ingress). */
+    go2rtc_muted?: boolean | null;
 }
 
 enum ButtonType {
@@ -469,12 +473,19 @@ class SIPCallDialog extends LitElement {
     }
 
     /**
-     * Strips go2rtc's own UI chrome (the "RTC"/"MSE"/... status overlay and the
-     * native <video> controls) from the embedded player, so only the raw video
-     * shows in the popup. This only works for same-origin frames (go2rtc_ingress);
-     * cross-origin frames are left untouched since the browser blocks DOM access.
+     * Applies the per-extension `go2rtc_controls` / `go2rtc_muted` overrides to the
+     * embedded go2rtc player: hides its "RTC"/"MSE"/... status overlay and native
+     * <video> controls when `go2rtc_controls` is set to `false`, and mutes the
+     * video element when `go2rtc_muted` is set to `true`. Both are opt-in (the
+     * player is left as-is by default) and only work for same-origin frames
+     * (go2rtc_ingress); cross-origin frames are left untouched since the browser
+     * blocks DOM access to them.
      */
-    private declutterGo2RTCFrame(event: Event) {
+    private declutterGo2RTCFrame(event: Event, extension?: Extension) {
+        const hideControls = extension?.go2rtc_controls === false;
+        const mute = extension?.go2rtc_muted === true;
+        if (!hideControls && !mute) return;
+
         const iframe = event.target as HTMLIFrameElement;
         let doc: Document | null;
         try {
@@ -485,7 +496,7 @@ class SIPCallDialog extends LitElement {
         }
         if (!doc) return;
 
-        if (!doc.getElementById(GO2RTC_DECLUTTER_STYLE_ID)) {
+        if (hideControls && !doc.getElementById(GO2RTC_DECLUTTER_STYLE_ID)) {
             const style = doc.createElement("style");
             style.id = GO2RTC_DECLUTTER_STYLE_ID;
             style.textContent = "video-stream .info { display: none !important; }";
@@ -493,7 +504,9 @@ class SIPCallDialog extends LitElement {
         }
 
         doc.querySelectorAll("video").forEach((video) => {
-            (video as HTMLVideoElement).controls = false;
+            const videoElement = video as HTMLVideoElement;
+            if (hideControls) videoElement.controls = false;
+            if (mute) videoElement.muted = true;
         });
     }
 
@@ -528,7 +541,7 @@ class SIPCallDialog extends LitElement {
                         class="sip-camera-frame"
                         src=${this.go2rtcIngressFrameUrl}
                         allow="autoplay; fullscreen; microphone; camera"
-                        @load=${this.declutterGo2RTCFrame}
+                        @load=${(e: Event) => this.declutterGo2RTCFrame(e, extension)}
                     ></iframe>
                 `;
             }
@@ -550,7 +563,7 @@ class SIPCallDialog extends LitElement {
                     class="sip-camera-frame"
                     src=${go2rtcFrameUrl}
                     allow="autoplay; fullscreen; microphone; camera"
-                    @load=${this.declutterGo2RTCFrame}
+                    @load=${(e: Event) => this.declutterGo2RTCFrame(e, extension)}
                 ></iframe>
             `;
         }
