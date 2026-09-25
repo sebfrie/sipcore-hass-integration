@@ -136,6 +136,20 @@ class SIPCallDialog extends LitElement {
                 --mdc-dialog-max-height: 90vh;
             }
 
+            /* Tablets (e.g. iPads) fall outside the phone breakpoint below
+               (neither dimension is ever <= 600px), so without this rule
+               "large" popups stayed capped at 90vw/90vh instead of nearly
+               filling the screen like they do on phones. This keeps the
+               dialog centered while filling almost the entire viewport. */
+            @media (min-width: 601px) and (min-height: 601px) {
+                ha-dialog[large] {
+                    --mdc-dialog-min-width: 98vw;
+                    --mdc-dialog-max-width: 98vw;
+                    --mdc-dialog-min-height: 96vh;
+                    --mdc-dialog-max-height: 96vh;
+                }
+            }
+
             ha-camera-stream {
                 height: 100%;
                 width: 100%;
