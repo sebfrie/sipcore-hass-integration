@@ -15,8 +15,8 @@ interface Extension {
     go2rtc_ingress?: boolean | null;
     go2rtc_addon_slug?: string | null;
     live_provider?: string | null;
-    /** Show go2rtc's player controls and status label (e.g. "RTC"). Default: true. Needs a same-origin player (go2rtc_ingress). */
-    go2rtc_controls?: boolean | null;
+    /** Hide go2rtc's player controls and status label (e.g. "RTC"). Default: false. Needs a same-origin player (go2rtc_ingress). */
+    go2rtc_hide_controls?: boolean | null;
     /** Mute the go2rtc player, as call audio already comes via SIP. Default: false. Needs a same-origin player (go2rtc_ingress). */
     go2rtc_muted?: boolean | null;
 }
@@ -473,16 +473,16 @@ class SIPCallDialog extends LitElement {
     }
 
     /**
-     * Applies the per-extension `go2rtc_controls` / `go2rtc_muted` overrides to the
-     * embedded go2rtc player: hides its "RTC"/"MSE"/... status overlay and native
-     * <video> controls when `go2rtc_controls` is set to `false`, and mutes the
+     * Applies the per-extension `go2rtc_hide_controls` / `go2rtc_muted` overrides to
+     * the embedded go2rtc player: hides its "RTC"/"MSE"/... status overlay and native
+     * <video> controls when `go2rtc_hide_controls` is set to `true`, and mutes the
      * video element when `go2rtc_muted` is set to `true`. Both are opt-in (the
      * player is left as-is by default) and only work for same-origin frames
      * (go2rtc_ingress); cross-origin frames are left untouched since the browser
      * blocks DOM access to them.
      */
     private declutterGo2RTCFrame(event: Event, extension?: Extension) {
-        const hideControls = extension?.go2rtc_controls === false;
+        const hideControls = extension?.go2rtc_hide_controls === true;
         const mute = extension?.go2rtc_muted === true;
         if (!hideControls && !mute) return;
 
