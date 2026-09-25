@@ -126,11 +126,20 @@ class SIPCallDialog extends LitElement {
 
             ha-dialog {
                 --dialog-content-padding: 0;
+                /* --mdc-dialog-* custom properties only have an effect on
+                   the legacy mwc-dialog-based ha-dialog implementation used
+                   by older Home Assistant frontends. Current frontends build
+                   ha-dialog on top of wa-dialog and size it via the "width"
+                   attribute (set to "full" below when large) plus
+                   --ha-dialog-* custom properties instead, so these are kept
+                   only for backwards compatibility with installations that
+                   haven't updated yet. */
                 --mdc-dialog-min-width: 600px;
             }
 
             ha-dialog[large] {
                 --dialog-content-padding: 0;
+                /* Legacy mwc-dialog sizing, see comment above. */
                 --mdc-dialog-min-width: 90vw;
                 --mdc-dialog-max-width: 90vw;
                 --mdc-dialog-max-height: 90vh;
@@ -602,7 +611,7 @@ class SIPCallDialog extends LitElement {
                 <ha-dialog open @closed=${() => {
                     this.configuratorOpen = false;
                     if (!this.open) this.closePopup();
-                }} prevent-scrim-close data-domain="camera" ?large=${this.config.large}>
+                }} prevent-scrim-close data-domain="camera" ?large=${this.config.large} width=${this.config.large ? "full" : "medium"}>
                     <ha-dialog-header slot="header">
                         <ha-icon-button
                             slot="navigationIcon"
@@ -655,7 +664,7 @@ class SIPCallDialog extends LitElement {
 
             <ha-dialog ?open=${this.open} @closed=${
             this.closePopup
-        } data-domain="camera" ?large=${this.config.large}>
+        } data-domain="camera" ?large=${this.config.large} width=${this.config.large ? "full" : "medium"}>
                 <ha-dialog-header slot="header">
                     <ha-icon-button
                         data-dialog="close"
