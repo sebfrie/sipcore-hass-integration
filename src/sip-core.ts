@@ -94,6 +94,7 @@ export class SIPCore {
     private heartBeatIntervalMs: number = 30000;
 
     private callTimerHandle: ReturnType<typeof setInterval> | null = null;
+    private ringStartTime: Date | null = null;
 
     private wssUrl!: string;
     private iceCandidateTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -216,12 +217,24 @@ export class SIPCore {
     /** Returns call duration in format `0:00` */
     get callDuration(): string {
         if (this.RTCSession?.start_time) {
-            var delta = Math.floor((Date.now() - this.RTCSession.start_time.getTime()) / 1000);
-            var minutes = Math.floor(delta / 60);
-            var seconds = delta % 60;
-            return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+            return SIPCore.formatDuration(this.RTCSession.start_time);
         }
         return "0:00";
+    }
+
+    /** Returns elapsed time since the call started ringing, in format `0:00` */
+    get ringDuration(): string {
+        if (this.ringStartTime) {
+            return SIPCore.formatDuration(this.ringStartTime);
+        }
+        return "0:00";
+    }
+
+    private static formatDuration(since: Date): string {
+        var delta = Math.floor((Date.now() - since.getTime()) / 1000);
+        var minutes = Math.floor(delta / 60);
+        var seconds = delta % 60;
+        return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     }
 
     get AudioOutputId(): string | null {
@@ -503,6 +516,8 @@ export class SIPCore {
                 return;
             }
             this.RTCSession = e.session;
+            this.ringStartTime = new Date();
+            this.startCallTimer();
 
             e.session.on("failed", (e: EndEvent) => {
                 console.warn("Call failed:", e);
@@ -510,6 +525,7 @@ export class SIPCore {
                 this.RTCSession = null;
                 this.remoteVideoStream = null;
                 this.remoteAudioStream = null;
+                this.ringStartTime = null;
                 this.stopCallTimer();
                 this.stopOutgoingTone();
                 this.stopIncomingRingtone();
@@ -521,6 +537,7 @@ export class SIPCore {
                 this.RTCSession = null;
                 this.remoteVideoStream = null;
                 this.remoteAudioStream = null;
+                this.ringStartTime = null;
                 this.stopCallTimer();
                 this.stopOutgoingTone();
                 this.stopIncomingRingtone();
@@ -528,7 +545,6 @@ export class SIPCore {
             });
             e.session.on("accepted", (e: IncomingEvent) => {
                 console.info("Call accepted");
-                this.startCallTimer();
                 this.stopOutgoingTone();
                 this.stopIncomingRingtone();
                 this.triggerUpdate();
