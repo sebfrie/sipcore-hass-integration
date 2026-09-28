@@ -34,6 +34,8 @@ interface PopupConfig {
     large: boolean | undefined;
     auto_open: boolean;
     hide_header_button?: boolean;
+    /** Show elapsed ringing time (in gray) before the call is picked up */
+    show_ring_timer?: boolean;
 }
 
 const DEFAULT_AUDIO_DEVICE_ID = "__default__";
@@ -580,6 +582,17 @@ class SIPCallDialog extends LitElement {
                 break;
         }
 
+        // Before the call is picked up, optionally show the elapsed ringing time in gray
+        // (less prominent). Once connected, always show the actual call duration, restarting
+        // from zero, using the default (non-gray) text color.
+        const isConnected = sipCore.callState === CALLSTATE.CONNECTED;
+        const durationText = isConnected
+            ? sipCore.callDuration
+            : this.config?.show_ring_timer
+                ? sipCore.ringDuration
+                : sipCore.callDuration;
+        const durationStyle = isConnected ? "" : "color: gray;";
+
         if (
             sipCore.callState !== CALLSTATE.IDLE &&
             sipCore.remoteExtension !== null &&
@@ -665,7 +678,7 @@ class SIPCallDialog extends LitElement {
                     </ha-icon-button>
                     <div slot="title" class="row">
                         <span>${statusText}</span>
-                        <span style="color: gray;">${sipCore.callDuration}</span>
+                        <span style="${durationStyle}">${durationText}</span>
                     </div>
                     <ha-icon-button
                         dialogAction="settings"

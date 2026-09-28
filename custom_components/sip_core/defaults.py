@@ -38,6 +38,7 @@ sip_config = {
         "auto_open": True,
         "large": False,
         "hide_header_button": False,
+        "show_ring_timer": False,
         "buttons": [
             {
                 "label": "Open Door",
